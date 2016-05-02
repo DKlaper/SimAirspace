@@ -17,11 +17,11 @@ PSQLConn::~PSQLConn()
 	disconnect();
 }
 
-std::vector<AirspaceDef>* PSQLConn::getCurrentAirspaces(double aglalt, double mslalt, double lat, double lon)
+std::set<AirspaceDef, airspaceCompare>* PSQLConn::getCurrentAirspaces(double aglalt, double mslalt, double lat, double lon)
 {
 	PGresult* res;
 	char ** params = new char*[3];
-	std::vector<AirspaceDef>* results = new std::vector<AirspaceDef>();
+	std::set<AirspaceDef, airspaceCompare>* results = new std::set<AirspaceDef, airspaceCompare>();
 
 	std::string val = std::to_string(aglalt);
 	// ugly cstring hack
@@ -50,7 +50,7 @@ std::vector<AirspaceDef>* PSQLConn::getCurrentAirspaces(double aglalt, double ms
 			// for now just get name and type
 			strcpy_s(def.name, PQgetvalue(res, i, 0));
 			def.type = static_cast<AirspaceType>(atoi(PQgetvalue(res, i, 1)));
-			results->push_back(def);
+			results->insert(def);
 		}
 		PQclear(res);
 	}

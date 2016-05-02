@@ -11,7 +11,7 @@ public:
 	int successfulcnt;
 	PSQLConn();
 	~PSQLConn();
-	std::vector<AirspaceDef>* getCurrentAirspaces(double aglalt, double mslalt, double lat, double lon);
+	std::set<AirspaceDef, airspaceCompare>* getCurrentAirspaces(double aglalt, double mslalt, double lat, double lon);
 	void insertAirspace(AirspaceDef* asp);
 	bool connect();
 	

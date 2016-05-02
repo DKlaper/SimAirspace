@@ -151,14 +151,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <Text Include="ReadMe.txt" />
-  </ItemGroup>
-  <ItemGroup>
     <ClCompile Include="AirspaceDef.cpp" />
     <ClCompile Include="BGLDecompiler.cpp" />
     <ClCompile Include="PSQLConn.cpp" />
     <ClCompile Include="Regions.cpp" />
     <ClCompile Include="SimAirspace.cpp" />
+    <ClCompile Include="SimTextManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AirspaceDef.h" />
@@ -167,6 +165,7 @@
     <ClInclude Include="PSQLConn.h" />
     <ClInclude Include="Regions.h" />
     <ClInclude Include="SimConnectHelpers.h" />
+    <ClInclude Include="SimTextManager.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="createTables.sql" />

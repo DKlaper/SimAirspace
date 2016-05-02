@@ -1,6 +1,6 @@
 #pragma once
 
-#include "GeographicLib/Geodesic.hpp";
+#include "GeographicLib/Geodesic.hpp"
 #include <sstream>
 
 using namespace GeographicLib;

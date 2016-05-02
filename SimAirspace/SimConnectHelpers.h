@@ -1,9 +1,13 @@
 #pragma once
+#include <iterator>
 #include <windows.h>
 #include "SimConnect.h"
 #include "PSQLConn.h"
+#include "SimTextManager.h"
 
 PSQLConn connSC;
+SimTextManager simText;
+std::set<AirspaceDef, airspaceCompare>* currentAirspaces = new std::set<AirspaceDef, airspaceCompare>();
 
 struct PlaneData {
 	SIMCONNECT_DATA_LATLONALT data;
@@ -25,18 +29,24 @@ void setup(HANDLE hSimConnect)
 	SimConnect_RequestDataOnSimObject(hSimConnect, REQUEST, DATADEF, SIMCONNECT_OBJECT_ID_USER, SIMCONNECT_PERIOD_SECOND, SIMCONNECT_DATA_REQUEST_FLAG_CHANGED, 2);
 }
 
-void dealWithAirspaces(std::vector<AirspaceDef>* airspaces)
+void dealWithAirspaces(std::set<AirspaceDef, airspaceCompare>* airspaces)
 {
 	// updates the list of airspaces and queues the text
-	for (AirspaceDef entry : *airspaces)
-	{
-		// if contains -> remove from list
-		// else: add to current txt queue
-	}
-	// create new list from current
-	// look at old list -> add to txt queue left messages
+	std::vector<AirspaceDef>* enteredAsp = new std::vector<AirspaceDef>();
+	std::set_difference(airspaces->begin(), airspaces->end(), currentAirspaces->begin(), currentAirspaces->end(), std::back_inserter<std::vector<AirspaceDef>>(*enteredAsp), airspaceCompare());
 
-	// process Text Queue to generate appropriate message
+	std::vector<AirspaceDef>* leftAsp = new std::vector<AirspaceDef>();
+	std::set_difference(currentAirspaces->begin(), currentAirspaces->end(), airspaces->begin(), airspaces->end(), std::back_inserter<std::vector<AirspaceDef>>(*leftAsp), airspaceCompare());
+	// we're done comparing the old ones, let's make current be current.
+	delete currentAirspaces;
+	currentAirspaces = airspaces;
+	
+	// process entered and left Queue to generate appropriate message
+ 	simText.process(currentAirspaces, enteredAsp, leftAsp);
+
+	delete enteredAsp;
+	delete leftAsp;
+
 }
 
 void CALLBACK CheckData(SIMCONNECT_RECV* pData, DWORD cbData, void *pContext)
@@ -56,7 +66,6 @@ void CALLBACK CheckData(SIMCONNECT_RECV* pData, DWORD cbData, void *pContext)
 			{
 				printf("You are currently in airspace %s of type %s\n", entry.name, airspaceTypes[entry.type].c_str());
 			}
-			delete airspaces;
 		}
 		break;
 	case SIMCONNECT_RECV_ID_QUIT:

@@ -24,3 +24,24 @@ public:
 
 };
 
+struct airspaceCompare
+{
+	bool operator() (const AirspaceDef& a, const AirspaceDef& b) const 
+	{
+		int namecmp = strcmp(a.name, b.name);
+		bool sametype = a.type == b.type;
+		if (sametype && namecmp == 0)
+		{
+			return false;
+		}
+		else if (!sametype)
+		{
+			return a.type < b.type;
+		}
+		else {
+			return namecmp < 0;
+		}
+
+	}
+};
+
