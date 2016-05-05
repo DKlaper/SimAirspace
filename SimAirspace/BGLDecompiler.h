@@ -48,6 +48,9 @@ const std::string airspaceTypes[] = { "NONE", "CENTER", "CLASS_A", "CLASS_B", "C
 "TOWER", "CLEARANCE", "GROUND", "DEPARTURE", "APPROACH", "MOA", "RESTRICTED", "PROHIBITED",
 "WARNING", "ALERT", "DANGER", "NATIONAL_PARK", "MODEC", "RADAR", "TRAINING" };
 
+// this is used for the ordering thus no 2 may have the same importance otherwise the  set will delete some non equal values  ---> explains those weird values
+const int airspaceImportance[] = { -99, -50, 10, 9, 8, 7, 6, -48, -46, -89, -90, -91, -92, -93,  15, 40, 50, 18, 19, 20, 14, 13, 5, 11 };
+
 #pragma pack(1)
 struct Name {
 	WORD id;

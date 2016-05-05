@@ -36,7 +36,9 @@ struct airspaceCompare
 		}
 		else if (!sametype)
 		{
-			return a.type < b.type;
+			// note the bigger than sign because we want the most important to be first
+			// also note that no 2 airspaceImportance values may be equal otherwise it will be deleted from the set
+			return airspaceImportance[a.type] > airspaceImportance[b.type];
 		}
 		else {
 			return namecmp < 0;

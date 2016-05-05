@@ -15,7 +15,7 @@ struct PlaneData {
 };
 
 enum SimConnectIDs {
-	DATADEF, REQUEST, REQUESTTEXT
+	DATADEF, REQUEST, STARTUP
 };
 
 int quit = 0;
@@ -23,8 +23,10 @@ int quit = 0;
 void setup(HANDLE hSimConnect)
 {
 	connSC.connect();
+	simText.setHandle(hSimConnect);
 	SimConnect_AddToDataDefinition(hSimConnect, DATADEF, "STRUCT LATLONALT", NULL, SIMCONNECT_DATATYPE_LATLONALT);
 	SimConnect_AddToDataDefinition(hSimConnect, DATADEF, "PLANE ALT ABOVE GROUND", "meter");
+	SimConnect_SubscribeToSystemEvent(hSimConnect, STARTUP, "SimStart");
 	// after 2 seconds return changed data every second
 	SimConnect_RequestDataOnSimObject(hSimConnect, REQUEST, DATADEF, SIMCONNECT_OBJECT_ID_USER, SIMCONNECT_PERIOD_SECOND, SIMCONNECT_DATA_REQUEST_FLAG_CHANGED, 2);
 }
@@ -52,7 +54,7 @@ void dealWithAirspaces(std::set<AirspaceDef, airspaceCompare>* airspaces)
 void CALLBACK CheckData(SIMCONNECT_RECV* pData, DWORD cbData, void *pContext)
 {
 	SIMCONNECT_RECV_SIMOBJECT_DATA* data = NULL;
-
+	SIMCONNECT_RECV_EVENT* evt = NULL;
 	switch (pData->dwID)
 	{
 	case SIMCONNECT_RECV_ID_SIMOBJECT_DATA:
@@ -82,7 +84,21 @@ void CALLBACK CheckData(SIMCONNECT_RECV* pData, DWORD cbData, void *pContext)
 		break;
 	}
 
-	// TODO deal with simconnect text result in particular manage which ones were displayed
+	case SIMCONNECT_RECV_ID_EVENT:
+		evt = (SIMCONNECT_RECV_EVENT*)pData;
+		if (evt->uEventID == TEXTREQUESTID)
+		{
+			simText.currentSimConnectTextResult = (SIMCONNECT_TEXT_RESULT)(evt->dwData);
+		}
+		else if (evt->uEventID == STARTUP)
+		{
+			currentAirspaces->clear();
+			simText.reset();
+		}
+		else {
+			printf("Unknown event id %d\n", evt->uEventID);
+		}
+		break;
 
 	default:
 		printf("Unknown event %d\n", pData->dwID);
