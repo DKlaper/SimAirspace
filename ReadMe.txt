@@ -3,8 +3,7 @@ This logs out which airspaces you are flying in!
 Note to build this you need geographiclib for c++
 and a postgres installation
 
-Limitations: It will not report the CLASS A airspace above 18000 feet in the US, because it is not coded as such in the corrsponding files.
-Rather it is hard coded.
+Limitations: It will not report the CLASS A airspace above 18000 feet in the US, because it is not as such in the boundary data
 
 Todo: 
 P3 Make configurable which airspace it reports on

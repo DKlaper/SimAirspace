@@ -8,6 +8,7 @@ std::list<Message*> messageQueue;
 long long curTime = IDLE; // when was the current first element displayed
 long long redispTime = IDLE; // when should it be displayed again because it was aborted
 Message* currentInsideMessage = NULL; // we only want a single inside message;
+const size_t TEXTSIZE = 512;
 
 SimTextManager::SimTextManager()
 {
@@ -88,22 +89,68 @@ struct RemoverMessageCompare {
 	}
 };
 
-bool addConfigToMessage(Message*  msg) { 
+// supposed settings:
+int insideImportance = 10; // display inside message if more important than X
+int displayImportance = 0; // don't display message if less important than x
+int forbiddenImportance = 25; // imporance above which flying is forbidden
+float standardTimeout = 10.0; // how long in seconds is it displayed // only for entered and left msgs
+
+
+bool addConfigToMessage(Message*  msg) {
+	msg->timeoutSecs = standardTimeout;
+	if (airspaceImportance[msg->type] < displayImportance)
+	{
+		return false;
+	}
 	if (msg->msgType == ENTERED)
 	{
 		msg->textType = SIMCONNECT_TEXT_TYPE_PRINT_GREEN;
 	}
 	else if (msg->msgType == LEFT)
 	{
+		msg->textType = SIMCONNECT_TEXT_TYPE_PRINT_YELLOW;
+	}
+	else {
+		msg->textType = SIMCONNECT_TEXT_TYPE_PRINT_BLUE;
+		if (airspaceImportance[msg->type] > insideImportance)
+		{
+			msg->timeoutSecs = 0.0; // inside always overwrite timeout
+		}
+		else {
+			return false; // do not display inside message
+		}
+ }
+	if (airspaceImportance[msg->type] > forbiddenImportance)
+	{
 		msg->textType = SIMCONNECT_TEXT_TYPE_PRINT_RED;
 	}
 	return true; 
 }
 
+
 char* getText(Message* msg)
 {
-	char* text = new char[512];
-	strcpy_s(text, 512, msg->name);
+	char* text = new char[TEXTSIZE];
+	switch (msg->msgType)
+	{
+		case ENTERED:
+			sprintf(text, "You have just entered %s. This is %s airspace. Please comply with regulatory requirements.", msg->name, airspaceTypes[msg->type]);
+			break;
+		case INSIDE:
+			if (airspaceImportance[msg->type] > forbiddenImportance)
+			{
+				sprintf(text, "You are inside %s. This is %s airspace. Leave this airspace immediately! Flying is forbidden here!", msg->name, airspaceTypes[msg->type]);
+			}
+			else {
+				sprintf(text, "You are inside %s. This is %s airspace. Please be considerate, observe restrictions and minimum altitudes in this airspace.", msg->name, airspaceTypes[msg->type]);
+			}
+			break;
+		case LEFT:
+			sprintf(text, "You just left %s. This is %s airspace. Report leaving if necessary.", msg->name, airspaceTypes[msg->type]);
+			break;
+		default:
+			break;
+	}
 	return text;
 }
 
@@ -135,7 +182,7 @@ void SimTextManager::displayNext()
 	}
 	Message* newMsg = messageQueue.front();
 	char* text = getText(newMsg);
-	HRESULT res = SimConnect_Text(hSimConnect, newMsg->textType, newMsg->timeoutSecs, TEXTREQUESTID, 512, text);
+	HRESULT res = SimConnect_Text(hSimConnect, newMsg->textType, newMsg->timeoutSecs, TEXTREQUESTID, TEXTSIZE, text);
 	if (SUCCEEDED(res))
 	{ // note this only works because it's single threaded so there's no race condition
 		curTime = TEXTSENT;
@@ -154,7 +201,7 @@ void SimTextManager::redisplayCurrent()
 	}
 	Message* msg = messageQueue.front();
 	char* text = getText(msg);
-	HRESULT res = SimConnect_Text(hSimConnect, msg->textType, msg->timeoutSecs, TEXTREQUESTID, 512, text);
+	HRESULT res = SimConnect_Text(hSimConnect, msg->textType, msg->timeoutSecs, TEXTREQUESTID, TEXTSIZE, text);
 	if (SUCCEEDED(res))
 	{ // note this only works because it's single threaded so there's no race condition
 		curTime = TEXTSENT;
