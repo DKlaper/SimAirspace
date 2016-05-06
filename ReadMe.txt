@@ -6,10 +6,7 @@ and a postgres installation
 Limitations: It will not report the CLASS A airspace above 18000 feet in the US, because it is not as such in the boundary data
 
 Todo: 
-P3 Make configurable which airspace it reports on
-P1 Properly report in game via text
-P2 Make proper tool for reading data -> read headers of all bgl then only read those with boundary sections
-P2 Proper DB setup installation
-P2 Make Gui instead of console
-P3 configurable setup for what it reports on
-P3 Publish simconnect events
+P2 Make configurable which airspace it reports on based on simple values
+P3 Make proper tool for reading data -> read headers of all bgl then only read those with boundary sections
+P3 Proper DB setup installation
+P1 Make it read some TFRs online if internet is available ... 
