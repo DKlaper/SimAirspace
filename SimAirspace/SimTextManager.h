@@ -20,6 +20,7 @@ struct Message {
 	MessageType msgType;
 };
 
+
 class SimTextManager
 {
 public:

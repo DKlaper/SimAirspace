@@ -17,8 +17,9 @@ public:
 	
 	char *db = "simairspacedb";
 	char *dbserver = "localhost";
-	char *uname = "David";
+	char *uname = "SimAirspace";
 	char *pass = "";
+	int port = 18200;
 private:
 	PGconn   *dbconn;
 	void disconnect();

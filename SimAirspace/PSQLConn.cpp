@@ -6,6 +6,8 @@ char *SQLL = "select ST_Area(ST_GeographyFromText('POLYGON (( 20 80 , 40 23, 20 
 //prepared statement names
 const char* ASPINSERT = "aspInsert"; 
 const char* ASPGET = "aspGet";
+const char* TFRGET = "tfrGet";
+
 
 PSQLConn::PSQLConn()
 {
@@ -54,6 +56,28 @@ std::set<AirspaceDef, airspaceCompare>* PSQLConn::getCurrentAirspaces(double agl
 		}
 		PQclear(res);
 	}
+
+	// new tfr code start
+	res = PQexecPrepared(dbconn, TFRGET, 3, params, NULL, NULL, 0);
+
+	if (PQresultStatus(res) != PGRES_TUPLES_OK)
+	{
+		printf("ERROR, Fetch All Failed: %s\n", PQerrorMessage(dbconn));
+		PQclear(res);
+	}
+	else {
+		AirspaceDef def;
+
+		for (int i = 0; i < PQntuples(res); ++i)
+		{
+			// for now just get name and type
+			strcpy_s(def.name, PQgetvalue(res, i, 0));
+			def.type = static_cast<AirspaceType>(atoi(PQgetvalue(res, i, 1)));
+			results->insert(def);
+		}
+		PQclear(res);
+	}
+	// new tfr code end
 
 	delete[] params[0];
 	delete[] params[1];
@@ -136,8 +160,8 @@ bool PSQLConn::connect()
 	printf("Database: %s\n", db);
 	printf("Server  : %s\n", dbserver);
 
-	sprintf(buff, "dbname=%s host=%s port=5432 user=%s password=%s",
-		db, dbserver, uname, pass);
+	sprintf(buff, "dbname=%s host=%s port=%d user=%s password=%s",
+		db, dbserver, port, uname, pass);
 
 	dbconn = PQconnectdb(buff);
 
@@ -204,6 +228,15 @@ bool PSQLConn::connect()
 
 
 		res = PQprepare(dbconn, ASPGET, "select name, astype, minAGLalt, maxAGLalt, minMSLalt, maxMSLalt from Airspace where ((minAGLalt != 'nan' AND minAGLalt <= $1) OR (minMSLalt != 'nan' AND minMSLalt <= $2)) AND ((maxAGLalt != 'nan' AND maxAGLalt >= $1) OR (maxMSLalt != 'nan' AND maxMSLalt >= $2)) AND ST_INTERSECTS(extent, ST_GEOGRAPHYFROMTEXT($3))", 0, NULL);
+		if (PQresultStatus(res) != PGRES_COMMAND_OK)
+		{
+			printf("ERROR, PrepareStatement failed: %s", PQerrorMessage(dbconn));
+			PQclear(res);
+			return false;
+		}
+		else { PQclear(res); }
+
+		res = PQprepare(dbconn, TFRGET, "select notam_id || ' ' || tfr_type, 24, lower_alt, upper_alt from tfr where ((lalt_type = 'AGL' AND lower_alt*0.3048 <= $1) OR (lalt_type = 'MSL' AND lower_alt*0.3048 <= $2)) AND ((ualt_type='AGL' AND upper_alt*0.3048 >= $1) OR (ualt_type='MSL' AND upper_alt*0.3048 >= $2)) AND ST_INTERSECTS(geog, ST_GEOGRAPHYFROMTEXT($3))", 0, NULL);
 		if (PQresultStatus(res) != PGRES_COMMAND_OK)
 		{
 			printf("ERROR, PrepareStatement failed: %s", PQerrorMessage(dbconn));

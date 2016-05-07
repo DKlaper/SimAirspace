@@ -10,6 +10,52 @@ long long redispTime = IDLE; // when should it be displayed again because it was
 Message* currentInsideMessage = NULL; // we only want a single inside message;
 const size_t TEXTSIZE = 512;
 
+/*Because c is ugly*/
+
+char *str_replace(char *orig, char *rep, char *with) {
+	char *result; // the return string
+	char *ins;    // the next insert point
+	char *tmp;    // varies
+	int len_rep;  // length of rep
+	int len_with; // length of with
+	int len_front; // distance between rep and end of last rep
+	int count;    // number of replacements
+
+	if (!orig)
+		return NULL;
+	if (!rep)
+		rep = "";
+	len_rep = strlen(rep);
+	if (!with)
+		with = "";
+	len_with = strlen(with);
+
+	ins = orig;
+	for (count = 0; tmp = strstr(ins, rep); ++count) {
+		ins = tmp + len_rep;
+	}
+
+	// first time through the loop, all the variable are set correctly
+	// from here on,
+	//    tmp points to the end of the result string
+	//    ins points to the next occurrence of rep in orig
+	//    orig points to the remainder of orig after "end of rep"
+	tmp = result = new char[strlen(orig) + (len_with - len_rep) * count + 1];
+
+	if (!result)
+		return NULL;
+
+	while (count--) {
+		ins = strstr(orig, rep);
+		len_front = ins - orig;
+		tmp = strncpy(tmp, orig, len_front) + len_front;
+		tmp = strcpy(tmp, with) + len_with;
+		orig += len_front + len_rep; // move to next "end of rep"
+	}
+	strcpy(tmp, orig);
+	return result;
+}
+
 SimTextManager::SimTextManager()
 {
 }
@@ -36,8 +82,76 @@ void SimTextManager::reset() // reset everything to initial after simload
 	currentSimConnectTextResult = SIMCONNECT_TEXT_RESULT_QUEUED;
 }
 
+void fixTFRName(AirspaceDef& def)
+{ // it can always only be one but we need to check all
+	// ugly copying should have done str str map but that also looks ugly
+	// also note this null handling only fails if the new call failed and then we have other problems
+	char *nextRes, *prevRes;
+	nextRes = str_replace(def.name, "Section_91_143", "SPACE OPERATIONS TFR");
+	prevRes = nextRes;
+	nextRes = str_replace(prevRes, "Section_91_141", "VIP TFR");
+	if (prevRes != NULL)
+	{
+		// not used anymore
+		delete prevRes;
+	}
+	prevRes = nextRes;
+	nextRes = str_replace(prevRes, "Section_91_137_a_1", "HAZARDS PROTECTION TFR");
+	if (prevRes != NULL)
+	{
+		// not used anymore
+		delete prevRes;
+	}
+	prevRes = nextRes;
+	nextRes = str_replace(prevRes, "Section_91_145", "AIR SHOW / SPORTS TFR");
+	if (prevRes != NULL)
+	{
+		// not used anymore
+		delete prevRes;
+	}
+	prevRes = nextRes;
+	nextRes = str_replace(prevRes, "Section_91_137_a_2", "HAZARDS RELIEF TFR");
+	if (prevRes != NULL)
+	{
+		// not used anymore
+		delete prevRes;
+	}
+	prevRes = nextRes;
+	nextRes = str_replace(prevRes, "Section_91_137_a_3", "HAZARDS CONGESTION TFR");
+	if (prevRes != NULL)
+	{
+		// not used anymore
+		delete prevRes;
+	}
+	prevRes = nextRes;
+	nextRes = str_replace(prevRes, "Section_91_138", "HAWAII DISASTER TFR");
+	if (prevRes != NULL)
+	{
+		// not used anymore
+		delete prevRes;
+	}
+	prevRes = nextRes;
+	nextRes = str_replace(prevRes, "Section_99_7", "NATIONAL SECURITY TFR");
+	if (prevRes != NULL)
+	{
+		// not used anymore
+		delete prevRes;
+	}
+	prevRes = nextRes;
+
+	if (nextRes != NULL)
+	{
+		strcpy_s(def.name, 150, nextRes);
+		delete nextRes;
+	}
+}
+
 Message* getMessageFromAirspace(AirspaceDef def, MessageType tp) {
 	Message* newmsg = new Message();
+	if (def.type == TFR)
+	{ // if TFR we need to fix the name now
+		fixTFRName(def);
+	}
 	strcpy_s(newmsg->name, def.name);
 	newmsg->type = def.type;
 	if (tp == INSIDE)
@@ -134,19 +248,19 @@ char* getText(Message* msg)
 	switch (msg->msgType)
 	{
 		case ENTERED:
-			sprintf(text, "You have just entered %s. This is %s airspace. Please comply with regulatory requirements.", msg->name, airspaceTypes[msg->type]);
+			sprintf(text, "You have just entered %s. This is %s airspace. Please comply with regulatory requirements.", msg->name, airspaceTypes[msg->type].c_str());
 			break;
 		case INSIDE:
 			if (airspaceImportance[msg->type] > forbiddenImportance)
 			{
-				sprintf(text, "You are inside %s. This is %s airspace. Leave this airspace immediately! Flying is forbidden here!", msg->name, airspaceTypes[msg->type]);
+				sprintf(text, "You are inside %s. This is %s airspace. Leave this airspace immediately! Flying is forbidden here!", msg->name, airspaceTypes[msg->type].c_str());
 			}
 			else {
-				sprintf(text, "You are inside %s. This is %s airspace. Please be considerate, observe restrictions and minimum altitudes in this airspace.", msg->name, airspaceTypes[msg->type]);
+				sprintf(text, "You are inside %s. This is %s airspace. Please be considerate, observe restrictions and minimum altitudes in this airspace.", msg->name, airspaceTypes[msg->type].c_str());
 			}
 			break;
 		case LEFT:
-			sprintf(text, "You just left %s. This is %s airspace. Report leaving if necessary.", msg->name, airspaceTypes[msg->type]);
+			sprintf(text, "You just left %s. This is %s airspace. Report leaving if necessary.", msg->name, airspaceTypes[msg->type].c_str());
 			break;
 		default:
 			break;
