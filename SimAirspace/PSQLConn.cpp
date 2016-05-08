@@ -152,6 +152,9 @@ void PSQLConn::insertAirspace(AirspaceDef* asp)
 
 bool PSQLConn::connect()
 {
+	// read portsetting:
+	port = AirspaceDef::conf.port;
+
 	char buff[200];
 	PGresult *res;
 	int nFields, i, j;

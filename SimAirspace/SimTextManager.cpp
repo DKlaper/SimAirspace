@@ -203,16 +203,10 @@ struct RemoverMessageCompare {
 	}
 };
 
-// supposed settings:
-int insideImportance = 10; // display inside message if more important than X
-int displayImportance = 0; // don't display message if less important than x
-int forbiddenImportance = 25; // imporance above which flying is forbidden
-float standardTimeout = 10.0; // how long in seconds is it displayed // only for entered and left msgs
-
 
 bool addConfigToMessage(Message*  msg) {
-	msg->timeoutSecs = standardTimeout;
-	if (airspaceImportance[msg->type] < displayImportance)
+	msg->timeoutSecs = AirspaceDef::conf.standardTimeout;
+	if (airspaceImportance[msg->type] < AirspaceDef::conf.displayImportance)
 	{
 		return false;
 	}
@@ -226,7 +220,7 @@ bool addConfigToMessage(Message*  msg) {
 	}
 	else {
 		msg->textType = SIMCONNECT_TEXT_TYPE_PRINT_BLUE;
-		if (airspaceImportance[msg->type] > insideImportance)
+		if (airspaceImportance[msg->type] > AirspaceDef::conf.insideImportance)
 		{
 			msg->timeoutSecs = 0.0; // inside always overwrite timeout
 		}
@@ -234,7 +228,7 @@ bool addConfigToMessage(Message*  msg) {
 			return false; // do not display inside message
 		}
  }
-	if (airspaceImportance[msg->type] > forbiddenImportance)
+	if (airspaceImportance[msg->type] > AirspaceDef::conf.forbiddenImportance)
 	{
 		msg->textType = SIMCONNECT_TEXT_TYPE_PRINT_RED;
 	}
@@ -251,7 +245,7 @@ char* getText(Message* msg)
 			sprintf(text, "You have just entered %s. This is %s airspace. Please comply with regulatory requirements.", msg->name, airspaceTypes[msg->type].c_str());
 			break;
 		case INSIDE:
-			if (airspaceImportance[msg->type] > forbiddenImportance)
+			if (airspaceImportance[msg->type] > AirspaceDef::conf.forbiddenImportance)
 			{
 				sprintf(text, "You are inside %s. This is %s airspace. Leave this airspace immediately! Flying is forbidden here!", msg->name, airspaceTypes[msg->type].c_str());
 			}

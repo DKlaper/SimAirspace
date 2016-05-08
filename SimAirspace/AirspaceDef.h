@@ -2,10 +2,12 @@
 #include "BGLDecompiler.h"
 #include <array>
 #include <sstream>
+#include "Configuration.h"
 
 class AirspaceDef
 {
 public:
+	static Configuration conf;
 	AirspaceDef();
 	~AirspaceDef();
 

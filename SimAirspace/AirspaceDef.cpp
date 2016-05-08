@@ -16,6 +16,8 @@ AirspaceDef::~AirspaceDef()
 	}
 }
 
+Configuration AirspaceDef::conf;
+
 char* AirspaceDef::getWKTRepresentation()
 {
 	std::ostringstream outstr;

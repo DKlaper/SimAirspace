@@ -1,10 +1,9 @@
 #pragma once
 
-#include<fstream>
-#include<intsafe.h>
-#include<set>
-#include<string>
-
+#include <fstream>
+#include <intsafe.h>
+#include <set>
+#include <string>
 
 struct Header {
 	DWORD magicVersion;

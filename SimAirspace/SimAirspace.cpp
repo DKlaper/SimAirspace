@@ -10,10 +10,9 @@
 #include "BGLDecompiler.h"
 #include "PSQLConn.h"
 #include "SimConnectHelpers.h"
+
 #pragma comment(lib, "urlmon.lib")
 
-// settings:
-const LPWSTR postgresFolder = LR"(C:\Users\David\Documents\Programming\postgresql-9.5.2-1-windows-x64-binaries\pgsql\bin\)";
 const LPWSTR combinedShapeFileURL = LR"(http://sggate.arc.nasa.gov:9518/airspace/shape/tfr.shp.zip)";
 const LPWSTR tfrZipFilename = LR"(tfr.shp.zip)";
 bool tfrUpdateEnabled = true; // set to false to not ever delete your tfr file
@@ -71,17 +70,17 @@ void readTfrData(LPCWSTR pgFolder)
 	if (reload && tfrUpdateEnabled)
 	{
 		DeleteFile(tfrZipFilename);
-		printf("Downloading new TFR data");
+		printf("Downloading new TFR data\n");
 		HRESULT res = URLDownloadToFile(NULL, combinedShapeFileURL, tfrZipFilename, 0, NULL);
 		if (res == S_OK)
 		{
-			printf("Downloading succeeded");
+			printf("Downloading succeeded\n");
 			ShellExecute(NULL, L"open", L"unzip.exe", L"-o -d tfr tfr.shp.zip", NULL, SW_HIDE);
 			// part 3 use shp2pgsql insert
 			updateTFRDB(pgFolder);
 		}
 		else {
-			printf("downloading failed");
+			printf("downloading failed\n");
 		}
 	}
 }
@@ -119,31 +118,44 @@ void shutdown(LPCWSTR pgFolder)
 }
 
 int main(int argc, char* argv[]) {
+	loadConfig(&AirspaceDef::conf);
+	if (argc == 2 && strcmp(argv[1], "initdb") == 0)
+	{
+		// write the config
+		saveConfig(AirspaceDef::conf);
 
+		// setup DB 
+	}
+	// init step 2 read airspaces
 	if (argc == 2 && strcmp(argv[1], "initasp") == 0)
 	{
-		// this just reads airspaces and exits
-		// later might be renamed as init when it also sets up the db 
 
 		// todo clear airspace table first.
 		printf("Parsing Bgls");
-		parseFile(R"(C:\FSX\Scenery\World\Scenery\BNXWorld1.bgl)");
-		parseFile(R"(C:\FSX\Scenery\World\Scenery\BNXWorld0.bgl)");
-		parseFile(R"(C:\FSX\Scenery\World\Scenery\bvcf.bgl)");
+		char* filepath = new char[1024];
+		wcstombs(filepath, AirspaceDef::conf.fsxFolder, 1024);
+		int baselen = strlen(filepath);
+		strcpy_s(filepath + baselen, 1024 - baselen, R"(\Scenery\World\Scenery\BNXWorld0.bgl)");
+		parseFile(filepath);
+		strcpy_s(filepath + baselen, 1024 - baselen, R"(\Scenery\World\Scenery\BNXWorld1.bgl)");
+		parseFile(filepath);
+		strcpy_s(filepath + baselen, 1024 - baselen, R"(\Scenery\World\Scenery\bvcf.bgl)");
+		parseFile(filepath);
+		delete filepath;
 		printf("Airspaces Inserted");
 		return 0;
 	}
 
 	if( SUCCEEDED( SimConnect_Open(&hSimConnect, "SimAirspace", NULL, 0, 0, 0) ) )
 	{
-		startup(postgresFolder);
+		startup(AirspaceDef::conf.postgresFolder);
 		setup(hSimConnect);
 		while (quit == 0)
 		{
 			SimConnect_CallDispatch(hSimConnect, CheckData, NULL);
 			Sleep(400);
 		}
-		shutdown(postgresFolder);
+		shutdown(AirspaceDef::conf.postgresFolder);
 	}
 	else {
 		printf("Could not open simconnect");
