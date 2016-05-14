@@ -27,6 +27,7 @@ SimAirspace/db/
 SimAirspace/tfr/
 SimAirspace/log.txt
 SimAirspace/newTFR.sql
+Package/
 
 # Visual Studio 2015 cache/options directory
 .vs/

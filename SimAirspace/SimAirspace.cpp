@@ -90,12 +90,18 @@ void startup(LPCWSTR pgFolder)
 	LPWSTR pg_ctl = new wchar_t[4096];
 	StringCchCopy(pg_ctl, 4096, pgFolder);
 	StringCchCat(pg_ctl+lstrlen(pgFolder), 4096-lstrlen(pgFolder), L"pg_ctl.exe");
-	LPWSTR param = LR"(start -D db )";
+	LPWSTR paramstart = LR"(start -D db -w -o "-p )";
+	LPWSTR paramend = LR"(")";
+	LPWSTR param = new wchar_t[200];
+	StringCchCopy(param, 200, paramstart);
+	swprintf_s(param + lstrlen(paramstart), 200 - lstrlen(paramstart), L"%d", AirspaceDef::conf.port);
+	StringCchCat(param, 200, paramend);
 	// start the database  (show no window)
 	int res = (int)ShellExecute(NULL, L"open", pg_ctl, param, NULL, SW_HIDE);
 	if (res < 32)
 	{
 		printf("Could not start db");
+		system("pause");
 		exit(-99);
 	}
 	// then read TFRs from Nasa tool
@@ -107,7 +113,7 @@ void shutdown(LPCWSTR pgFolder)
 	LPWSTR pg_ctl = new wchar_t[4096];
 	StringCchCopy(pg_ctl, 4096, pgFolder);
 	StringCchCat(pg_ctl + lstrlen(pgFolder), 4096 - lstrlen(pgFolder), L"pg_ctl.exe");
-	LPWSTR param = LR"(stop -D tmp\ -w)";
+	LPWSTR param = LR"(stop -D db -w)";
 	// start the database  (show no window)
 	int res = (int)ShellExecute(NULL, L"open", pg_ctl, param, NULL, SW_HIDE);
 	if (res < 32)
@@ -117,20 +123,56 @@ void shutdown(LPCWSTR pgFolder)
 	}
 }
 
+bool executePostgres(LPCWSTR pgFolder, LPCWSTR executable, LPCWSTR params)
+{
+	LPWSTR exec = new wchar_t[2048];
+	StringCchCopy(exec, 2048, pgFolder);
+	StringCchCat(exec, 2048, executable);
+
+	int res = (int)ShellExecute(NULL, L"open", exec, params, NULL, SW_HIDE);
+	return res >= 32;
+}
+
 int main(int argc, char* argv[]) {
 	loadConfig(&AirspaceDef::conf);
-	if (argc == 2 && strcmp(argv[1], "initdb") == 0)
+	SetCurrentDirectory(AirspaceDef::conf.postgresFolder); // use that as current dir
+
+	if (argc == 2 && strcmp(argv[1], "initconfig") == 0)
 	{
 		// write the config
 		saveConfig(AirspaceDef::conf);
 
-		// setup DB 
+		return 0;
 	}
 	// init step 2 read airspaces
-	if (argc == 2 && strcmp(argv[1], "initasp") == 0)
+	if (argc == 2 && strcmp(argv[1], "initdb") == 0)
 	{
 
-		// todo clear airspace table first.
+		// setup DB 
+		// step 1 init db
+		// hardcoding is bad but so damn convenient and the username won't change
+		executePostgres(AirspaceDef::conf.postgresFolder, L"initdb.exe", L"-D db -U SimAirspace");
+		Sleep(1000);
+		// step 2 startup and make the db
+		startup(AirspaceDef::conf.postgresFolder);
+		Sleep(200);
+		PSQLConn* conn = new PSQLConn();
+		// also make db // also hardcode db name
+		LPWSTR parameters = new wchar_t[1024];
+		swprintf_s(parameters, 1024, L"-p %d -U %S -w %s", conn->port, conn->uname, conn->db);
+		executePostgres(AirspaceDef::conf.postgresFolder, L"createdb.exe", parameters);
+		delete parameters;
+		Sleep(2000);
+
+		// step 3 create table for airspace (tfr is created on first start)
+		conn->connect(); // destructor deconnects;
+		LPWSTR params = new wchar_t[1024];
+		swprintf_s(params, 1024, L"-f createTables.sql -d %S -p %d -U %S -w", conn->db, conn->port, conn->uname);
+		executePostgres(AirspaceDef::conf.fsxFolder, L"psql.exe", params);
+		delete params;
+		delete conn;
+
+		// step 4 parse data
 		printf("Parsing Bgls");
 		char* filepath = new char[1024];
 		wcstombs(filepath, AirspaceDef::conf.fsxFolder, 1024);
@@ -143,6 +185,26 @@ int main(int argc, char* argv[]) {
 		parseFile(filepath);
 		delete filepath;
 		printf("Airspaces Inserted");
+		shutdown(AirspaceDef::conf.postgresFolder);
+		return 0;
+	}
+
+	if (argc == 2 && strcmp(argv[1], "readasp") == 0)
+	{
+		startup(AirspaceDef::conf.postgresFolder);
+		printf("Parsing Bgls");
+		char* filepath = new char[1024];
+		wcstombs(filepath, AirspaceDef::conf.fsxFolder, 1024);
+		int baselen = strlen(filepath);
+		strcpy_s(filepath + baselen, 1024 - baselen, R"(\Scenery\World\Scenery\BNXWorld0.bgl)");
+		parseFile(filepath);
+		strcpy_s(filepath + baselen, 1024 - baselen, R"(\Scenery\World\Scenery\BNXWorld1.bgl)");
+		parseFile(filepath);
+		strcpy_s(filepath + baselen, 1024 - baselen, R"(\Scenery\World\Scenery\bvcf.bgl)");
+		parseFile(filepath);
+		delete filepath;
+		printf("Airspaces Inserted");
+		shutdown(AirspaceDef::conf.postgresFolder);
 		return 0;
 	}
 
@@ -158,7 +220,7 @@ int main(int argc, char* argv[]) {
 		shutdown(AirspaceDef::conf.postgresFolder);
 	}
 	else {
-		printf("Could not open simconnect");
+		printf("Could not open simconnect\n");
 	}
 
 	return 0;

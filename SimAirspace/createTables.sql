@@ -1,8 +1,7 @@
--- Manually create db
---DROP DATABASE IF EXISTS SimAirspaceDB;
---CREATE DATABASE SimAirspaceDB;
---\c SimAirspaceDB
---CREATE EXTENSION postigs;
+
+CREATE EXTENSION postgis;
+
+DROP TABLE IF EXISTS airspace;
 
 CREATE TABLE airspace (
 	id SERIAL PRIMARY KEY,
@@ -22,11 +21,3 @@ CREATE INDEX alt2 ON Airspace (minAGLalt);
 CREATE INDEX alt3 ON Airspace (maxMSLalt);
 CREATE INDEX alt4 ON Airspace (maxAGLalt);
 CREATE INDEX tp ON Airspace (astype);
-
--- Unused
---CREATE TABLE RegionToAirspace (
---	aid INTEGER REFERENCES airspace(id),
---	rid INTEGER NOT NULL,
---	CONSTRAINT regairmapping PRIMARY KEY (aid, rid)
---);
---CREATE INDEX reg ON RegionToAirspace (rid)

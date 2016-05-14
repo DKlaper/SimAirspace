@@ -22,7 +22,7 @@ struct Configuration
 
 	Configuration() {
 		StringCchCopy(fsxFolder, maxsize, LR"(C:\FSX\)");
-		StringCchCopy(postgresFolder, maxsize, LR"(C:\Users\David\Documents\Programming\postgresql-9.5.2-1-windows-x64-binaries\pgsql\bin\)");
+		StringCchCopy(postgresFolder, maxsize, LR"(postgres\bin\)");
 	}
 };
 
